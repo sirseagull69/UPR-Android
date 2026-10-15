@@ -7,6 +7,9 @@ import java.io.File
 // Idee und Offsets stammen vom Tool "hgss-shiny-modifier" (choogiesaur, MIT-Lizenz):
 // Im entpackten ARM9-Code steht an einer festen Stelle ein einzelnes Byte,
 // das die Shiny-Chance bestimmt (Original: 8 von 65536). Wir setzen dort einen höheren Wert.
+//
+// Sicherheit: Der Patch schreibt nur, wenn an der Stelle wirklich der Originalwert 8 steht.
+// Bei einer unbekannten Version bleibt die ROM unverändert.
 object ShinyPatch {
 
 	class Result(val ok: Boolean, val text: String)
@@ -27,22 +30,29 @@ object ShinyPatch {
 		try {
 			rom = NDSRom(file.absolutePath)
 			val code = rom.code
+			// HeartGold = IPK..., SoulSilver = IPG...
+			if (!code.startsWith("IPK") && !code.startsWith("IPG")) {
+				return Result(false, "Shiny-Patch gibt es nur für HeartGold und SoulSilver (dieses Spiel: $code).")
+			}
 			val offset = offsetFor(code)
 			val arm9 = rom.getARM9()
 			if (offset >= arm9.size) {
 				return Result(false, "Shiny-Patch nicht möglich: Stelle im Spielcode nicht gefunden (Version $code).")
 			}
 			val before = arm9[offset].toInt() and 0xFF
+			if (before != 8) {
+				return Result(false, "Shiny-Patch nicht angewendet: an der Stelle steht $before statt 8 (Version $code ist dem Patch unbekannt). Die ROM bleibt unverändert.")
+			}
 			arm9[offset] = rate.toByte()
 			rom.writeARM9(arm9)
 			rom.saveTo(tmp.absolutePath)
 			rom.closeROM()
 			rom = null
-			if (!file.delete() || !tmp.renameTo(file)) {
-				return Result(false, "Shiny-Patch: die fertige Datei konnte nicht ersetzt werden.")
+			if (!tmp.renameTo(file)) {
+				tmp.copyTo(file, overwrite = true)
+				tmp.delete()
 			}
-			val warn = if (before != 8) " Achtung: Originalwert war $before statt 8, die Version wird evtl. nicht unterstützt." else ""
-			return Result(true, "Shiny-Patch angewendet (Version $code, Wert $before auf $rate).$warn")
+			return Result(true, "Shiny-Patch angewendet (Version $code, Wert 8 auf $rate).")
 		} catch (e: Exception) {
 			tmp.delete()
 			return Result(false, "Shiny-Patch fehlgeschlagen: ${e.message}")
