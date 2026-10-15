@@ -8,7 +8,7 @@ import androidx.activity.compose.setContent
 import com.dabomstew.pkrandom.Utils.testForRequiredConfigs
 import ly.mens.rndpkmn.ui.CHANNEL_BATCH
 import ly.mens.rndpkmn.ui.CHANNEL_LAST
-import ly.mens.rndpkmn.ui.RandomizerApp
+import ly.mens.rndpkmn.ui.SoulSilverApp
 
 class MainActivity : ComponentActivity() {
 
@@ -35,7 +35,7 @@ class MainActivity : ComponentActivity() {
             })
             deleteNotificationChannel("69420") //leftover from something
         }
-        setContent { RandomizerApp() }
+        setContent { SoulSilverApp() }
     }
 
     override fun onDestroy() {
