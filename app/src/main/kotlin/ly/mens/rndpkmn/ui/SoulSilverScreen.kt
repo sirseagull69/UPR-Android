@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -17,6 +18,7 @@ import androidx.documentfile.provider.DocumentFile
 import com.dabomstew.pkrandom.RandomSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import ly.mens.rndpkmn.ShinyPatch
 import ly.mens.rndpkmn.isRomFile
 import ly.mens.rndpkmn.loadFromUri
 import ly.mens.rndpkmn.saveToUri
@@ -25,10 +27,30 @@ import java.io.File
 
 // Eigene, schlanke Oberfläche für den SoulSilver-Randomizer.
 // Sie benutzt den vorhandenen Randomizer-Kern (RandomizerSettings) und
-// ersetzt nur die Bedienung: ROM wählen, Preset, Seed, ein Button.
+// ersetzt nur die Bedienung: ROM wählen, Preset, Seed, Shiny, ein Button.
 
-private const val PREFS = "soulsilver"       // Name des Speichers für dein Preset
-private const val KEY_PRESET = "preset"      // Schlüssel, unter dem der Settings-String liegt
+private const val PREFS = "soulsilver"
+private const val KEY_PRESET = "preset"
+
+// Setzt die Nuzlocke-Standard-Einstellungen direkt im Randomizer.
+// Die true/false-Listen folgen der Reihenfolge der Optionen im Randomizer:
+// Genau ein "true" steht an der Stelle der gewünschten Option.
+private fun applyNuzlockeStandard() {
+	with(RandomizerSettings) {
+		// Starter: (unverändert, eigene Wahl, komplett zufällig, zufällig mit 2 Entwicklungen)
+		setStartersMod(false, false, true, false)
+		// Wilde Pokémon: (unverändert, zufällig, pro Gebiet 1:1, global 1:1)
+		setWildPokemonMod(false, false, true, false)
+		// ... ähnlich stark wie das Original: (keine, ähnlich stark, alle fangbar, Typ-Gebiete)
+		setWildPokemonRestrictionMod(false, true, false, false)
+		// Trainer: (unverändert, zufällig, gleichmäßig verteilt, ...)
+		setTrainersMod(false, true, false, false)
+		setTrainersUsePokemonOfSimilarStrength(true)
+		setTrainersBlockLegendaries(true)
+		// Statische Pokémon: (unverändert, tauschen, komplett zufällig, ähnlich stark)
+		setStaticPokemonMod(false, false, false, true)
+	}
+}
 
 @Composable
 fun SoulSilverApp() {
@@ -43,7 +65,6 @@ fun SoulSilverScreen() {
 	val scope = rememberCoroutineScope()
 	val prefs = remember { ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
 
-	// Alles, was sich auf dem Bildschirm ändern kann, steht hier als "State".
 	var romLoaded by rememberSaveable { mutableStateOf(false) }
 	var romInfo by rememberSaveable { mutableStateOf("Noch kein ROM gewählt.") }
 	var preset by rememberSaveable { mutableStateOf(prefs.getString(KEY_PRESET, "") ?: "") }
@@ -51,15 +72,16 @@ fun SoulSilverScreen() {
 	var status by rememberSaveable { mutableStateOf("") }
 	var busy by remember { mutableStateOf(false) }
 	var logReady by remember { mutableStateOf(false) }
+	var shinyOn by rememberSaveable { mutableStateOf(false) }
+	var shinyRate by rememberSaveable { mutableStateOf(255) }
 
-	// Wendet deinen gespeicherten Settings-String auf den Randomizer an.
 	fun applyPreset(): Boolean {
 		val text = preset.trim()
 		if (text.isEmpty()) return true
 		return RandomizerSettings.updateFromString(text)
 	}
 
-	// 1) ROM auswählen und in den Randomizer laden
+	// 1) ROM auswählen und laden
 	val openRom = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
 		if (uri == null) return@rememberLauncherForActivityResult
 		scope.launch(Dispatchers.IO) {
@@ -88,8 +110,7 @@ fun SoulSilverScreen() {
 		}
 	}
 
-	// 2) Ergebnis speichern: Android fragt nach Ordner und Dateiname,
-	//    danach wird randomisiert und die Datei dorthin kopiert.
+	// 2) Randomisieren und speichern
 	val saveRom = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("*/*")) { uri ->
 		if (uri == null) return@rememberLauncherForActivityResult
 		scope.launch(Dispatchers.IO) {
@@ -99,23 +120,29 @@ fun SoulSilverScreen() {
 				.substringAfter(':')
 			val file = File(ctx.filesDir, name)
 			if (RandomizerSettings.saveRom(file)) {
-				status = try {
-					ctx.saveToUri(uri, file)
-					"Fertig: $name"
-				} catch (e: Exception) {
-					"Randomisiert, aber das Speichern im Ordner hat nicht geklappt."
+				// Optional: Shiny-Patch auf die frisch randomisierte ROM
+				val shiny = if (shinyOn) ShinyPatch.apply(file, shinyRate) else null
+				if (shiny != null && !shiny.ok) {
+					status = shiny.text + " Die ROM wurde nicht gespeichert."
+				} else {
+					status = try {
+						ctx.saveToUri(uri, file)
+						"Fertig: $name" + (shiny?.let { " " + it.text } ?: "")
+					} catch (e: Exception) {
+						"Randomisiert, aber das Speichern im Ordner hat nicht geklappt."
+					}
 				}
 			} else {
 				status = "Randomisieren fehlgeschlagen. Das Log zeigt den Grund."
 			}
 			logReady = true
-			ctx.deleteFile(name)                  // temporäre Kopie wieder löschen
-			RandomizerSettings.reloadRomHandler() // für den nächsten Durchlauf vorbereiten
+			ctx.deleteFile(name)
+			RandomizerSettings.reloadRomHandler()
 			busy = false
 		}
 	}
 
-	// 3) Log speichern (verrät alle Gegner und Spawns, also Spoiler!)
+	// 3) Log speichern (Spoiler!)
 	val saveLog = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
 		if (uri == null) return@rememberLauncherForActivityResult
 		scope.launch(Dispatchers.IO) {
@@ -131,15 +158,25 @@ fun SoulSilverScreen() {
 	) {
 		Text("SoulSilver Randomizer", style = MaterialTheme.typography.h5)
 
-		// ROM
 		Button({ openRom.launch("*/*") }, enabled = !busy) { Text("ROM wählen") }
 		Text(romInfo)
 
-		// Preset (dein Nuzlocke-Settings-String), wird dauerhaft gespeichert
+		// Nuzlocke-Standard: setzt die Einstellungen und erzeugt den Settings-String
+		OutlinedButton({
+			if (!romLoaded) {
+				status = "Wähle zuerst ein ROM."
+			} else {
+				applyNuzlockeStandard()
+				preset = RandomizerSettings.versionString
+				prefs.edit().putString(KEY_PRESET, preset).apply()
+				status = "Nuzlocke-Standard gesetzt. Der Settings-String steht jetzt im Feld."
+			}
+		}, enabled = !busy) { Text("Nuzlocke-Standard erzeugen") }
+
 		OutlinedTextField(
 			value = preset,
 			onValueChange = { preset = it },
-			label = { Text("Settings-String (Nuzlocke-Preset)") },
+			label = { Text("Settings-String") },
 			modifier = Modifier.fillMaxWidth(),
 			maxLines = 4
 		)
@@ -150,7 +187,6 @@ fun SoulSilverScreen() {
 			else "Der Settings-String ist ungültig."
 		}) { Text("Preset speichern") }
 
-		// Seed
 		Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
 			OutlinedTextField(
 				value = seed,
@@ -165,7 +201,20 @@ fun SoulSilverScreen() {
 			}, enabled = romLoaded && !busy) { Text("Neu würfeln") }
 		}
 
-		// Los geht's
+		// Shiny-Chance (wie das Tool hgss-shiny-modifier)
+		Row(verticalAlignment = Alignment.CenterVertically) {
+			Checkbox(checked = shinyOn, onCheckedChange = { shinyOn = it })
+			Text("Shiny-Chance erhöhen")
+		}
+		if (shinyOn) {
+			listOf("1/1024" to 64, "1/512" to 128, "1/256" to 255).forEach { (label, value) ->
+				Row(verticalAlignment = Alignment.CenterVertically) {
+					RadioButton(selected = shinyRate == value, onClick = { shinyRate = value })
+					Text(label)
+				}
+			}
+		}
+
 		Button({
 			if (!applyPreset()) {
 				status = "Der Settings-String ist ungültig."
