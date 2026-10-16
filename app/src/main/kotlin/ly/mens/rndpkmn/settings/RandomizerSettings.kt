@@ -27,7 +27,10 @@ object RandomizerSettings : Settings() {
 			Gen2RomHandler.Factory(),
 			Gen3RomHandler.Factory(),
 			Gen4RomHandler.Factory(),
-			Gen5RomHandler.Factory()
+			Gen5RomHandler.Factory(),
+			// 3DS (X/Y, ORAS, Sonne/Mond, Ultra): Testversion, braucht ein entschlüsseltes ROM
+			Gen6RomHandler.Factory(),
+			Gen7RomHandler.Factory()
 	)
 	private lateinit var romHandlerFactory: RomHandler.Factory
 	private lateinit var romHandler: RomHandler

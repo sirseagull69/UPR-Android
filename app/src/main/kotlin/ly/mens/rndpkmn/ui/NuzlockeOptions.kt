@@ -23,6 +23,12 @@ data class NuzlockeOptions(
 	val randomAbilities: Boolean = false,   // Fähigkeiten
 	val randomTypes: Boolean = false,       // Typen der Pokémon
 	val shuffleBaseStats: Boolean = false,  // Basiswerte mischen
+	val randomShops: Boolean = false,       // Shop-Inhalt zufällig
+	val randomPickup: Boolean = false,      // Items, die Pickup/Fundgrube findet
+	val randomTrades: Boolean = false,      // Tausch-NPCs im Spiel
+	val wildAnyStrength: Boolean = false,   // wilde Pokémon ohne Stärke-Begrenzung (auch früh starke)
+	val allowLegendaries: Boolean = false,  // Legendäre dürfen wild und bei Trainern vorkommen
+	val wildMapping: Int = 0,               // 0 pro Gebiet 1:1, 1 global 1:1, 2 komplett zufällig
 	// Spielkomfort
 	val easyEvolutions: Boolean = true,     // Tausch-/Zeit-Entwicklungen und hohe Level entschärfen
 	val higherCatchRate: Boolean = false,   // Mindest-Fangrate anheben
@@ -44,6 +50,12 @@ data class NuzlockeOptions(
 			.putBoolean("randomAbilities", randomAbilities)
 			.putBoolean("randomTypes", randomTypes)
 			.putBoolean("shuffleBaseStats", shuffleBaseStats)
+			.putBoolean("randomShops", randomShops)
+			.putBoolean("randomPickup", randomPickup)
+			.putBoolean("randomTrades", randomTrades)
+			.putBoolean("wildAnyStrength", wildAnyStrength)
+			.putBoolean("allowLegendaries", allowLegendaries)
+			.putInt("wildMapping", wildMapping)
 			.putBoolean("easyEvolutions", easyEvolutions)
 			.putBoolean("higherCatchRate", higherCatchRate)
 			.putBoolean("fastText", fastText)
@@ -72,6 +84,12 @@ data class NuzlockeOptions(
 				randomAbilities = p.getBoolean("randomAbilities", d.randomAbilities),
 				randomTypes = p.getBoolean("randomTypes", d.randomTypes),
 				shuffleBaseStats = p.getBoolean("shuffleBaseStats", d.shuffleBaseStats),
+				randomShops = p.getBoolean("randomShops", d.randomShops),
+				randomPickup = p.getBoolean("randomPickup", d.randomPickup),
+				randomTrades = p.getBoolean("randomTrades", d.randomTrades),
+				wildAnyStrength = p.getBoolean("wildAnyStrength", d.wildAnyStrength),
+				allowLegendaries = p.getBoolean("allowLegendaries", d.allowLegendaries),
+				wildMapping = p.getInt("wildMapping", d.wildMapping).coerceIn(0, 2),
 				easyEvolutions = p.getBoolean("easyEvolutions", d.easyEvolutions),
 				higherCatchRate = p.getBoolean("higherCatchRate", d.higherCatchRate),
 				fastText = p.getBoolean("fastText", d.fastText),
@@ -99,17 +117,17 @@ fun NuzlockeOptions.applyTo() {
 		setStartersMod(*pick(4, if (easy) 3 else 2))
 
 		// Wilde Pokémon: 0 unverändert, 1 zufällig, 2 pro Gebiet 1:1, 3 global 1:1
-		setWildPokemonMod(*pick(4, 2))
+		setWildPokemonMod(*pick(4, when (wildMapping) { 1 -> 3; 2 -> 1; else -> 2 }))
 		// Einschränkung: 0 keine, 1 ähnlich stark, 2 alle fangbar, 3 Typ-Gebiete
-		setWildPokemonRestrictionMod(*pick(4, 1))
-		setBlockWildLegendaries(true)
+		setWildPokemonRestrictionMod(*pick(4, if (wildAnyStrength) 0 else 1))
+		setBlockWildLegendaries(!allowLegendaries)
 		setUseTimeBasedEncounters(false)
 
 		// Trainer: 0 unverändert, 1 zufällig, 2 gleichmäßig, 3 gleichmäßig (Hauptspiel),
 		// 4 Typ-Teams, 5 Typ-Teams auch für Top 4 und Arenen
 		setTrainersMod(*pick(6, if (hard) 5 else 1))
 		setTrainersUsePokemonOfSimilarStrength(true)
-		setTrainersBlockLegendaries(true)
+		setTrainersBlockLegendaries(!allowLegendaries)
 		setTrainersMatchTypingDistribution(false)
 		setRivalCarriesStarterThroughout(easy)
 		setBetterTrainerMovesets(hard)
@@ -166,6 +184,20 @@ fun NuzlockeOptions.applyTo() {
 		// Basiswerte: 0 unverändert, 1 mischen, 2 zufällig
 		setBaseStatisticsMod(*pick(3, if (shuffleBaseStats) 1 else 0))
 		setBaseStatsFollowEvolutions(shuffleBaseStats)
+
+		// Shops: 0 unverändert, 1 mischen, 2 zufällig
+		setShopItemsMod(*pick(3, if (randomShops) 2 else 0))
+		setBanBadRandomShopItems(randomShops)
+		setBanRegularShopItems(false)
+		setBanOPShopItems(randomShops)
+		setBalanceShopPrices(randomShops)
+		// Pickup: 0 unverändert, 1 zufällig
+		setPickupItemsMod(*pick(2, if (randomPickup) 1 else 0))
+		setBanBadRandomPickupItems(randomPickup)
+		// Tausch-NPCs: 0 unverändert, 1 nur gegebenes Pokémon, 2 beide
+		setInGameTradesMod(*pick(3, if (randomTrades) 1 else 0))
+		setRandomizeInGameTradesNicknames(randomTrades)
+		setRandomizeInGameTradesOTs(randomTrades)
 
 		// Eingebaute Zusatz-Patches des Randomizers
 		var tweaks = MiscTweak.NO_MISC_TWEAKS
