@@ -67,7 +67,7 @@ private fun safeName(s: String?): String =
 @Composable
 fun SoulSilverApp() {
 	MaterialTheme(
-		colors = darkColors(primary = Red, onPrimary = RedText, background = Bg, surface = Bg, onSurface = Panel),
+		colors = darkColors(primary = Red, onPrimary = RedText, background = Bg, onBackground = Panel, surface = Bg, onSurface = Panel),
 		typography = Typography(defaultFontFamily = Mono)
 	) {
 		Surface(Modifier.fillMaxSize(), color = Bg, contentColor = Panel) { SoulSilverScreen() }
