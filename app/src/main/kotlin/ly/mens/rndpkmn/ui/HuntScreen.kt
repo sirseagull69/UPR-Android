@@ -142,9 +142,9 @@ fun HuntScreen() {
 		RetroBox {
 			Column(Modifier.padding(vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
 				Text("1. JAGD STARTEN, Aufnahme erlauben (ganzer Bildschirm).", fontSize = 13.sp)
-				Text("2. Im ersten wilden Kampf: Leiste runterziehen, \"Kampf merken\", Leiste schließen, 3 s warten.", fontSize = 13.sp)
+				Text("2. Im ersten wilden Kampf: Leiste runterziehen, \"Kampf merken\", Leiste schließen, kurz warten.", fontSize = 13.sp)
 				Text("3. Ab jetzt zählt die App jeden Kampf selbst.", fontSize = 13.sp)
-				Text("Tipp: Leiste im Kampf nicht lange offen lassen. Trainerkämpfe zählen mit. Neue Gegend? Einmal neu merken.", color = Ink2, fontSize = 12.sp)
+				Text("Tipp: Leiste im Kampf nicht offen lassen (sonst zählt er doppelt). Trainerkämpfe zählen mit. Neue Gegend? Einmal neu merken.", color = Ink2, fontSize = 12.sp)
 			}
 		}
 

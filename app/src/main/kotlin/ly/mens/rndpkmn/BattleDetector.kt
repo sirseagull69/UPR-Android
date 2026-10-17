@@ -74,7 +74,7 @@ class BattleDetector(val w: Int, val h: Int) {
 		return if (total == 0) 0f else same.toFloat() / total
 	}
 
-	// Wird für jedes Bild (ca. 4 pro Sekunde) aufgerufen
+	// Wird für jedes Bild (ca. 8 pro Sekunde) aufgerufen
 	fun onFrame(frame: IntArray): Event {
 		if (calibratePending) {
 			calibratePending = false
@@ -91,13 +91,13 @@ class BattleDetector(val w: Int, val h: Int) {
 		lastSimilarity = s
 		if (!inBattle) {
 			if (s >= enterThreshold) hi++ else hi = 0
-			if (hi >= 2) { // 0,5 s sicher im Kampf
+			if (hi >= 2) { // 0,25 s sicher im Kampf
 				inBattle = true; lo = 0
 				return Event.ENCOUNTER
 			}
 		} else {
 			if (s < exitThreshold) lo++ else lo = 0
-			if (lo >= 12) { // 3 s sicher draußen
+			if (lo >= 6) { // 0,75 s sicher draußen (auch mit Turbo schnell genug)
 				inBattle = false; hi = 0
 				return Event.BATTLE_END
 			}

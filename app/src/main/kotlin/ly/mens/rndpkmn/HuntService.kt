@@ -25,7 +25,7 @@ import java.nio.ByteBuffer
 import kotlin.math.roundToInt
 
 // Hintergrunddienst der Shiny-Jagd.
-// Nimmt den Hauptbildschirm in winziger Auflösung auf (ca. 160 x 90 Pixel, 4 Bilder pro Sekunde)
+// Nimmt den Hauptbildschirm in winziger Auflösung auf (ca. 160 x 90 Pixel, 8 Bilder pro Sekunde, reicht auch mit Turbo)
 // und zählt jeden Kampf. Das kostet kaum Rechenleistung.
 class HuntService : Service() {
 
@@ -40,7 +40,7 @@ class HuntService : Service() {
 		const val EXTRA_DATA = "data"
 		const val EXTRA_DELAY = "delay"
 		private const val WIDTH = 160
-		private const val INTERVAL_MS = 250L
+		private const val INTERVAL_MS = 125L
 
 		fun startIntent(ctx: Context, code: Int, data: Intent): Intent =
 			Intent(ctx, HuntService::class.java).setAction(ACTION_START)
