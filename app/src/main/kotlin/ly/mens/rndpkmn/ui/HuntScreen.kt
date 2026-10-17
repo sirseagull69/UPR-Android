@@ -76,6 +76,7 @@ fun HuntScreen() {
 				RetroButton("−1") { HuntState.add(ctx, -1) }
 				RetroButton("+1") { HuntState.add(ctx, 1) }
 				RetroButton("SHINY!") { HuntState.found(ctx) }
+				RetroButton("RESET") { HuntState.add(ctx, -HuntState.count) }
 			}
 		}
 
@@ -94,8 +95,8 @@ fun HuntScreen() {
 						RetroButton("STOPPEN") {
 							ctx.startService(HuntService.action(ctx, HuntService.ACTION_STOP))
 						}
-						RetroButton("KAMPF MERKEN (5 s)") {
-							ctx.startService(HuntService.action(ctx, HuntService.ACTION_CALIBRATE, 5000L))
+						RetroButton("KAMPF MERKEN") {
+							ctx.startService(HuntService.action(ctx, HuntService.ACTION_CALIBRATE))
 						}
 					}
 				}
@@ -142,7 +143,7 @@ fun HuntScreen() {
 		RetroBox {
 			Column(Modifier.padding(vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
 				Text("1. JAGD STARTEN, Aufnahme erlauben (ganzer Bildschirm).", fontSize = 13.sp)
-				Text("2. Im ersten wilden Kampf: Leiste runterziehen, \"Kampf merken\", Leiste schließen, kurz warten.", fontSize = 13.sp)
+				Text("2. Im ersten wilden Kampf: Leiste runterziehen, \"Kampf merken\", Leiste schließen. Die App wartet selbst, bis der Kampf ruhig zu sehen ist.", fontSize = 13.sp)
 				Text("3. Ab jetzt zählt die App jeden Kampf selbst.", fontSize = 13.sp)
 				Text("Tipp: Leiste im Kampf nicht offen lassen (sonst zählt er doppelt). Trainerkämpfe zählen mit. Neue Gegend? Einmal neu merken.", color = Ink2, fontSize = 12.sp)
 			}

@@ -98,9 +98,8 @@ class HuntService : Service() {
 				if (d == null) {
 					setStatus("Erst die Jagd starten.")
 				} else {
-					val delay = i.getLongExtra(EXTRA_DELAY, 3000L)
-					setStatus("Kampf wird in ${delay / 1000} s gemerkt. Leiste schließen!")
-					handler.postDelayed({ d.requestCalibrate() }, delay)
+					setStatus("Leiste schließen. Ich merke mir den Kampf, sobald er ruhig zu sehen ist.")
+					handler.post { d.requestCalibrate() }
 				}
 			}
 			ACTION_MINUS -> {
@@ -223,7 +222,7 @@ class HuntService : Service() {
 	}
 
 	// Referenzbild sichern, damit man nach einem Neustart nicht neu merken muss
-	private fun refFile() = File(noBackupFilesDir, "hunt_ref_${w}x$h.bin")
+	private fun refFile() = File(noBackupFilesDir, "hunt_ref2_${w}x$h.bin")
 
 	private fun saveReference(d: BattleDetector) {
 		val ref = d.ref ?: return

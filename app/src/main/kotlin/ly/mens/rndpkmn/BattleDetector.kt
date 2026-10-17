@@ -30,9 +30,28 @@ class BattleDetector(val w: Int, val h: Int) {
 
 	private var hi = 0
 	private var lo = 0
-	private var calibratePending = false
+	// Merken läuft in Schritten: 1 = Startbild nehmen (meist die Leiste),
+	// 2 = warten bis sich das Bild deutlich ändert (Leiste zu), 3 = warten bis das Bild ruhig steht
+	private var calState = 0
+	private var calTicks = 0
+	private var calBase: IntArray? = null
+	private var calPrev: IntArray? = null
 
-	fun requestCalibrate() { calibratePending = true }
+	val calibrating get() = calState != 0
+
+	fun requestCalibrate() { calState = 1; calTicks = 0 }
+
+	// Vergleich über das ganze Bild (für das Merken)
+	private fun simFull(a: IntArray, b: IntArray): Float {
+		var same = 0
+		for (i in a.indices) {
+			val x = a[i]; val y = b[i]
+			val d = max(abs(((x shr 16) and 0xFF) - ((y shr 16) and 0xFF)),
+				max(abs(((x shr 8) and 0xFF) - ((y shr 8) and 0xFF)), abs((x and 0xFF) - (y and 0xFF))))
+			if (d <= 28) same++
+		}
+		return same.toFloat() / a.size
+	}
 
 	fun setReference(frame: IntArray): Boolean {
 		if (frame.size != w * h) return false
@@ -76,8 +95,22 @@ class BattleDetector(val w: Int, val h: Int) {
 
 	// Wird für jedes Bild (ca. 8 pro Sekunde) aufgerufen
 	fun onFrame(frame: IntArray): Event {
-		if (calibratePending) {
-			calibratePending = false
+		if (calState != 0) {
+			calTicks++
+			if (calTicks > 160) { calState = 0; return Event.CALIBRATE_FAILED } // nach 20 s aufgeben
+			when (calState) {
+				1 -> { calBase = frame.copyOf(); calState = 2; return Event.NONE }
+				2 -> {
+					if (simFull(frame, calBase!!) < 0.6f) { calPrev = frame.copyOf(); calState = 3 }
+					return Event.NONE
+				}
+				else -> {
+					val prev = calPrev!!
+					if (simFull(frame, prev) < 0.92f) { calPrev = frame.copyOf(); return Event.NONE }
+				}
+			}
+			calState = 0
+			calBase = null; calPrev = null
 			val wasInBattle = inBattle
 			return if (setReference(frame)) {
 				inBattle = true
