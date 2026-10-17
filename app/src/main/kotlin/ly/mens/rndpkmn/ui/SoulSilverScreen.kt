@@ -51,15 +51,15 @@ private const val KEY_LOGAUTO = "logAuto"
 private const val KEY_RUNNO = "runNo"
 private const val KEY_RUNNAME = "runName"
 
-private val Bg = Color(0xFF1B2038)
-private val Panel = Color(0xFFECE6D2)
-private val PanelDash = Color(0xFFD9D2BA)
-private val Ink = Color(0xFF17192B)
-private val Ink2 = Color(0xFF4B4D63)
-private val Red = Color(0xFFD6382B)
-private val RedText = Color(0xFFFFF6EE)
-private val Muted = Color(0xFF9AA3C9)
-private val Mono = FontFamily.Monospace
+internal val Bg = Color(0xFF1B2038)
+internal val Panel = Color(0xFFECE6D2)
+internal val PanelDash = Color(0xFFD9D2BA)
+internal val Ink = Color(0xFF17192B)
+internal val Ink2 = Color(0xFF4B4D63)
+internal val Red = Color(0xFFD6382B)
+internal val RedText = Color(0xFFFFF6EE)
+internal val Muted = Color(0xFF9AA3C9)
+internal val Mono = FontFamily.Monospace
 
 private fun safeName(s: String?): String =
 	(s ?: "Pokemon").replace(Regex("[^A-Za-z0-9]+"), "_").trim('_').removePrefix("Pokemon_").ifEmpty { "Pokemon" }
@@ -70,13 +70,27 @@ fun SoulSilverApp() {
 		colors = darkColors(primary = Red, onPrimary = RedText, background = Bg, onBackground = Panel, surface = Bg, onSurface = Panel),
 		typography = Typography(defaultFontFamily = Mono)
 	) {
-		Surface(Modifier.fillMaxSize(), color = Bg, contentColor = Panel) { SoulSilverScreen() }
+		Surface(Modifier.fillMaxSize(), color = Bg, contentColor = Panel) {
+			var tab by rememberSaveable { mutableStateOf(0) }
+			Column(Modifier.fillMaxSize()) {
+				Row(
+					Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp),
+					horizontalArrangement = Arrangement.spacedBy(10.dp)
+				) {
+					Tag("RANDOMIZER", tab == 0) { tab = 0 }
+					Tag("SHINY-JAGD", tab == 1) { tab = 1 }
+				}
+				Box(Modifier.weight(1f)) {
+					if (tab == 0) SoulSilverScreen() else HuntScreen()
+				}
+			}
+		}
 	}
 }
 
 // Kasten mit dickem Rand und hartem Schatten (Inhalt dunkel auf Creme)
 @Composable
-private fun RetroBox(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+internal fun RetroBox(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
 	val shadow = 4.dp
 	Column(
 		modifier
@@ -95,18 +109,18 @@ private fun RetroBox(modifier: Modifier = Modifier, content: @Composable ColumnS
 }
 
 @Composable
-private fun Heading(text: String) {
+internal fun Heading(text: String) {
 	Text(text.uppercase(), color = Muted, fontSize = 13.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
 }
 
 @Composable
-private fun Dash() {
+internal fun Dash() {
 	Box(Modifier.fillMaxWidth().height(2.dp).background(PanelDash))
 }
 
 // Quadratisches Kästchen (Haken oder Auswahl)
 @Composable
-private fun Box22(on: Boolean, radio: Boolean) {
+internal fun Box22(on: Boolean, radio: Boolean) {
 	Box(
 		Modifier.size(22.dp).background(Color.White).border(3.dp, Ink, RectangleShape),
 		contentAlignment = Alignment.Center
@@ -122,7 +136,7 @@ private fun Box22(on: Boolean, radio: Boolean) {
 
 // Eine Listenzeile mit Cursor-Pfeil, Kästchen, Titel und Hinweis
 @Composable
-private fun Item(
+internal fun Item(
 	label: String, on: Boolean, hint: String? = null, radio: Boolean = false,
 	enabled: Boolean = true, first: Boolean = false, onClick: () -> Unit
 ) {
@@ -142,7 +156,7 @@ private fun Item(
 }
 
 @Composable
-private fun RetroButton(text: String, enabled: Boolean = true, onClick: () -> Unit) {
+internal fun RetroButton(text: String, enabled: Boolean = true, onClick: () -> Unit) {
 	val shadow = 3.dp
 	Box(
 		Modifier
@@ -161,7 +175,7 @@ private fun RetroButton(text: String, enabled: Boolean = true, onClick: () -> Un
 }
 
 @Composable
-private fun Tag(text: String, on: Boolean, onClick: () -> Unit) {
+internal fun Tag(text: String, on: Boolean, onClick: () -> Unit) {
 	val shadow = 3.dp
 	Box(
 		Modifier
@@ -194,7 +208,7 @@ private fun LevelSlider(label: String, value: Int, onChange: (Int) -> Unit) {
 }
 
 @Composable
-private fun retroFieldColors() = TextFieldDefaults.outlinedTextFieldColors(
+internal fun retroFieldColors() = TextFieldDefaults.outlinedTextFieldColors(
 	textColor = Ink, backgroundColor = Color.White, cursorColor = Red,
 	focusedBorderColor = Ink, unfocusedBorderColor = Ink,
 	focusedLabelColor = Ink, unfocusedLabelColor = Ink2
